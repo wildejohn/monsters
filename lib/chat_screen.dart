@@ -78,7 +78,6 @@ class ChatScreenState extends State<ChatScreen> {
   final reference = FirebaseDatabase.instance.reference().child(
       'messages'); // new
 
-  // Add the _ensureLoggedIn() method definition in ChatScreenState.
 
   Future<Null> _ensureLoggedIn() async {
     GoogleSignInAccount user = googleSignIn.currentUser;

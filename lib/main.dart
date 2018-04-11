@@ -48,7 +48,9 @@ class MonstersApp extends StatelessWidget {
       theme: defaultTargetPlatform == TargetPlatform.iOS
           ? kIOSTheme
           : kDefaultTheme,
-      home: new HomeScreen(),
+      routes: <String, WidgetBuilder>{
+        '/':         (BuildContext context) => new HomeScreen()
+      },
       onGenerateRoute: _getRoute,
     );
   }

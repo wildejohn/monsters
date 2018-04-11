@@ -24,27 +24,36 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  // modified
-  final TextEditingController _textController = new TextEditingController();
   final reference = FirebaseDatabase.instance.reference().child('login');
-
-  // Add the _ensureLoggedIn() method definition in ChatScreenState.
-
-  Future<Null> _ensureLoggedIn() async {
+  bool _isLoggedIn = false;
+  Future<Null> _tryLogIn() async {
     GoogleSignInAccount user = googleSignIn.currentUser;
     if (user == null)
       user = await googleSignIn.signInSilently();
     if (user == null) {
       await googleSignIn.signIn();
-      analytics.logLogin(); //new
+      analytics.logLogin();
     }
-    if (await auth.currentUser() == null) { //new
-      GoogleSignInAuthentication credentials = //new
-      await googleSignIn.currentUser.authentication; //new
-      await auth.signInWithGoogle( //new
-        idToken: credentials.idToken, //new
-        accessToken: credentials.accessToken, //new
-      ); //new
+    _tryAuthenticate();
+    setState(() {
+      _isLoggedIn = googleSignIn.currentUser != null;
+    });
+  }
+
+  void _tryLogOut() async {
+    await googleSignIn.signOut();
+    setState(() {
+      _isLoggedIn = googleSignIn.currentUser != null;
+    });
+  }
+
+  Future<Null> _tryAuthenticate() async {
+    if (await auth.currentUser() == null) {
+      GoogleSignInAuthentication credentials = await googleSignIn.currentUser.authentication;
+      await auth.signInWithGoogle(
+        idToken: credentials.idToken,
+        accessToken: credentials.accessToken,
+      );
     }
   }
 
@@ -57,6 +66,49 @@ class HomeScreenState extends State<HomeScreen> {
               .of(context)
               .platform == TargetPlatform.iOS ? 0.0 : 4.0,
         ),
-        );
+
+        body: new Column(children: <Widget>[
+          new Container(
+            decoration:
+            new BoxDecoration(color: Theme
+                .of(context)
+                .cardColor),
+            child: _buildButton(),
+          ),
+        ]));
   }
+
+  Widget _buildButton() {
+    String text = _isLoggedIn ? "Log Out" : "Login";
+    return new IconTheme(
+      data: new IconThemeData(color: Theme
+          .of(context)
+          .accentColor),
+      child: new Container(
+        margin: new EdgeInsets.symmetric(horizontal: 4.0),
+        child: new RaisedButton(
+          onPressed: () async {
+            if (_isLoggedIn) {
+              _tryLogOut();
+            } else {
+              _tryLogIn();
+            }
+          },
+          child: new Row(
+            children: <Widget>[
+              const Icon(
+                Icons.dvr,
+                size: 18.0,
+              ),
+              new Container(
+                width: 8.0,
+              ),
+              new Text(text),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 }
