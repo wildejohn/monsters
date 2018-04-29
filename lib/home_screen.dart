@@ -128,7 +128,6 @@ class HomeScreenState extends State<HomeScreen> {
     } else {
       return _buildButton(text, _logInOrOut);
     }
-
   }
 
   Widget _buildButton(String text, VoidCallback onTap) {
