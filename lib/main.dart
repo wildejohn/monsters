@@ -2,27 +2,29 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_sign_in/google_sign_in.dart';                   // new
-import 'dart:async';                                               // new
-import 'package:firebase_analytics/firebase_analytics.dart';      // new
-import 'package:firebase_auth/firebase_auth.dart';                // new
-import 'package:firebase_database/firebase_database.dart';         //new
-import 'package:firebase_database/ui/firebase_animated_list.dart'; //new
-import 'package:firebase_storage/firebase_storage.dart';          // new
-import 'package:image_picker/image_picker.dart';     // new
-
-import 'dart:math';                                  // new
-import 'dart:io';
-
-import 'package:monsters/chat_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:monsters/draw_screen.dart';
 import 'package:monsters/home_screen.dart';
+import 'package:monsters/new_game.dart';
+// new
+// new
+//import 'package:firebase_analytics/firebase_analytics.dart';      // new
+// new
+//import 'package:firebase_database/firebase_database.dart';         //new
+//import 'package:firebase_database/ui/firebase_animated_list.dart'; //new
+//import 'package:firebase_storage/firebase_storage.dart';          // new
+// new
+// new
 
-final googleSignIn = new GoogleSignIn();                          // new
-final analytics = new FirebaseAnalytics();     // new
-final auth = FirebaseAuth.instance;                              // new
+
+final googleSignIn = new GoogleSignIn();
+//final analytics = new FirebaseAnalytics();
+final auth = FirebaseAuth.instance;
 
 
 final ThemeData kIOSTheme = new ThemeData(
@@ -49,7 +51,8 @@ class MonstersApp extends StatelessWidget {
           ? kIOSTheme
           : kDefaultTheme,
       routes: <String, WidgetBuilder>{
-        '/':         (BuildContext context) => new HomeScreen()
+        '/':         (BuildContext context) => new HomeScreen(),
+        '/new':      (BuildContext context) => new NewGameScreen(),
       },
       onGenerateRoute: _getRoute,
     );
@@ -62,16 +65,13 @@ class MonstersApp extends StatelessWidget {
     // the first component is not empty:
     if (path[0] != '')
       return null;
-    // If the path is "/chat:..." then show a chat page
-    if (path[1].startsWith('chat:')) {
-      if (path.length != 2)
+    if (path[1].startsWith('draw')) {
+      if (path.length != 3)
         return null;
-      // Extract the symbol part of "stock:..." and return a route
-      // for that symbol.
-      final String symbol = path[1].substring(6);
+      final int symbol = int.parse(path[2]);
       return new MaterialPageRoute<Null>(
         settings: settings,
-        builder: (BuildContext context) => new ChatScreen()
+        builder: (BuildContext context) => new DrawScreen(drawingType: symbol)
       );
     }
     // The other paths we support are in the routes table.
