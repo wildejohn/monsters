@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
@@ -46,10 +48,12 @@ class DrawScreen extends StatefulWidget {
 
 class _ScreenPainter extends CustomPainter {
   _ScreenPainter({
-    this.myRect
+    this.myRect,
+    this.points
   }) : super();
 
   final Rect myRect;
+  final List<Offset> points;
 
   void drawRect(Canvas canvas, Rect rect, Color color) {
     final Paint paint = new Paint()
@@ -59,9 +63,17 @@ class _ScreenPainter extends CustomPainter {
     canvas.drawRect(rect, paint);
   }
 
+  void drawPoints(Canvas canvas, Color color) {
+    final Paint paint = new Paint()
+      ..color = color.withOpacity(0.25)
+      ..strokeWidth = 4.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawPoints(PointMode.points, points, paint);
+  }
   @override
   void paint(Canvas canvas, Size size) {
     drawRect(canvas, myRect, Colors.green);
+    drawPoints(canvas, Colors.red);
   }
 
   @override
@@ -79,6 +91,7 @@ class DrawState extends State<DrawScreen> {
   final GlobalKey _painterKey = new GlobalKey();
   Rect _begin;
   Size _screenSize;
+  List<Offset> _points = new List<Offset>();
 
   Drag _handleOnStart(Offset position) {
     return new _DragHandler(_handleDragUpdate, _handleDragCancel, _handleDragEnd);
@@ -86,6 +99,7 @@ class DrawState extends State<DrawScreen> {
 
   void _handleDragUpdate(DragUpdateDetails details) {
     setState(() {
+      _points.add(details.globalPosition);
       _begin = _begin.shift(details.delta);
     });
   }
@@ -121,7 +135,10 @@ class DrawState extends State<DrawScreen> {
         child: new ClipRect(
             child: new CustomPaint(
                 key: _painterKey,
-                foregroundPainter: new _ScreenPainter(myRect: _begin)
+                foregroundPainter: new _ScreenPainter(
+                    myRect: _begin,
+                    points: _points
+                )
             )
         )
     );
