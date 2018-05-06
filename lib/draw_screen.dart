@@ -2,8 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 // How close a drag's start position must be to the target point. This is
@@ -63,17 +61,18 @@ class _ScreenPainter extends CustomPainter {
     canvas.drawRect(rect, paint);
   }
 
-  void drawPoints(Canvas canvas, Color color) {
+  static void drawPoints(Canvas canvas, List<Offset> points, Color color) {
     final Paint paint = new Paint()
       ..color = color.withOpacity(0.25)
       ..strokeWidth = 4.0
       ..style = PaintingStyle.stroke;
     canvas.drawPoints(PointMode.points, points, paint);
   }
+
   @override
   void paint(Canvas canvas, Size size) {
     drawRect(canvas, myRect, Colors.green);
-    drawPoints(canvas, Colors.red);
+    drawPoints(canvas, points, Colors.red);
   }
 
   @override
@@ -83,7 +82,8 @@ class _ScreenPainter extends CustomPainter {
 
   @override
   bool hitTest(Offset position) {
-    return (myRect.center - position).distanceSquared < _kTargetSlop;
+//    return (myRect.center - position).distanceSquared < _kTargetSlop;
+    return true;
   }
 }
 
@@ -94,7 +94,8 @@ class DrawState extends State<DrawScreen> {
   List<Offset> _points = new List<Offset>();
 
   Drag _handleOnStart(Offset position) {
-    return new _DragHandler(_handleDragUpdate, _handleDragCancel, _handleDragEnd);
+    return new _DragHandler(
+        _handleDragUpdate, _handleDragCancel, _handleDragEnd);
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
@@ -110,9 +111,63 @@ class DrawState extends State<DrawScreen> {
   void _handleDragEnd(DragEndDetails details) {
   }
 
+  void _save() async {
+   // https://groups.google.com/forum/#!msg/flutter-dev/yCzw8sutC-E/zo2GZw87BgAJ
+    PictureRecorder recorder = new PictureRecorder();
+    Canvas c = new Canvas(recorder);
+    _ScreenPainter.drawPoints(c, _points, Colors.red);
+    Picture p = recorder.endRecording();
+    p.toImage(_screenSize.width.floor(), _screenSize.height.floor()).toString();
+  }
+
+  Widget _gesture(BuildContext context) {
+    return new Expanded(
+        child: new RawGestureDetector(
+            behavior: HitTestBehavior.deferToChild,
+            gestures: <Type, GestureRecognizerFactory>{
+              ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers<
+                  ImmediateMultiDragGestureRecognizer>(
+                    () => new ImmediateMultiDragGestureRecognizer(),
+                    (ImmediateMultiDragGestureRecognizer instance) {
+                  instance
+                    ..onStart = _handleOnStart;
+                },
+              ),
+            },
+//            child: new ClipRect(
+                child: new CustomPaint(
+                  key: _painterKey,
+                  painter: new _ScreenPainter(
+                      myRect: _begin,
+                      points: _points
+                  ),
+                )
+            )
+        )
+    );
+  }
+
+  Widget _button() {
+    return new FlatButton(
+        color: Colors.red,
+        onPressed: () async {
+          _save();
+        },
+        child: new Text('Done',
+            style: Theme
+                .of(context)
+                .textTheme
+                .caption
+                .copyWith(fontSize: 16.0)
+        )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
+    final Size screenSize = MediaQuery
+        .of(context)
+        .size;
     if (_screenSize == null || _screenSize != screenSize) {
       _screenSize = screenSize;
       _begin = new Rect.fromLTWH(
@@ -121,27 +176,10 @@ class DrawState extends State<DrawScreen> {
       );
     }
 
-    return new RawGestureDetector(
-        behavior: HitTestBehavior.deferToChild,
-        gestures: <Type, GestureRecognizerFactory>{
-          ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                () => new ImmediateMultiDragGestureRecognizer(),
-                (ImmediateMultiDragGestureRecognizer instance) {
-              instance
-                ..onStart = _handleOnStart;
-            },
-          ),
-        },
-        child: new ClipRect(
-            child: new CustomPaint(
-                key: _painterKey,
-                foregroundPainter: new _ScreenPainter(
-                    myRect: _begin,
-                    points: _points
-                )
-            )
-        )
-    );
+    return new Row(
+        children: <Widget>[
+          _gesture(context),
+          _button()
+        ]);
   }
 }
-
