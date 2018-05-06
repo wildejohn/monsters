@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+
 
 // How close a drag's start position must be to the target point. This is
 // a distance squared.
@@ -31,7 +36,43 @@ class _DragHandler extends Drag {
   }
 }
 
+class DrawingStorage {
+  Future<String> get _localPath async {
+    final directory = await getApplicationDocumentsDirectory();
+
+    return directory.path;
+  }
+
+  Future<File> get _localFile async {
+    final path = await _localPath;
+    return new File('$path/image.png');
+  }
+
+  Future<int> readCounter() async {
+    try {
+      final file = await _localFile;
+
+      // Read the file
+      String contents = await file.readAsString();
+
+      return int.parse(contents);
+    } catch (e) {
+      // If we encounter an error, return 0
+      return 0;
+    }
+  }
+
+  Future<File> writeImage(ByteData data) async {
+    final file = await _localFile;
+
+    // Write the file
+    return file.writeAsBytes(data.buffer.asUint8List());
+  }
+}
+
 class DrawScreen extends StatefulWidget {
+  final DrawingStorage storage  = new DrawingStorage();
+
   DrawScreen({
     this.drawingType
   }) : super();
@@ -94,12 +135,14 @@ class DrawState extends State<DrawScreen> {
   List<Offset> _points = new List<Offset>();
 
   Drag _handleOnStart(Offset position) {
+    print(position);
     return new _DragHandler(
         _handleDragUpdate, _handleDragCancel, _handleDragEnd);
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
     setState(() {
+      print(details);
       _points.add(details.globalPosition);
       _begin = _begin.shift(details.delta);
     });
@@ -112,12 +155,16 @@ class DrawState extends State<DrawScreen> {
   }
 
   void _save() async {
+    print("Save tapped");
    // https://groups.google.com/forum/#!msg/flutter-dev/yCzw8sutC-E/zo2GZw87BgAJ
     PictureRecorder recorder = new PictureRecorder();
     Canvas c = new Canvas(recorder);
     _ScreenPainter.drawPoints(c, _points, Colors.red);
     Picture p = recorder.endRecording();
-    p.toImage(_screenSize.width.floor(), _screenSize.height.floor()).toString();
+    ByteData b = await p
+        .toImage(_screenSize.width.floor(), _screenSize.height.floor())
+        .toByteData(format: ImageByteFormat.png);
+    widget.storage.writeImage(b);
   }
 
   Widget _gesture(BuildContext context) {
@@ -125,8 +172,8 @@ class DrawState extends State<DrawScreen> {
         child: new RawGestureDetector(
             behavior: HitTestBehavior.deferToChild,
             gestures: <Type, GestureRecognizerFactory>{
-              ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers<
-                  ImmediateMultiDragGestureRecognizer>(
+              ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers
+              <ImmediateMultiDragGestureRecognizer>(
                     () => new ImmediateMultiDragGestureRecognizer(),
                     (ImmediateMultiDragGestureRecognizer instance) {
                   instance
@@ -135,16 +182,19 @@ class DrawState extends State<DrawScreen> {
               ),
             },
 //            child: new ClipRect(
+//            child: new Center(
                 child: new CustomPaint(
                   key: _painterKey,
                   painter: new _ScreenPainter(
                       myRect: _begin,
                       points: _points
                   ),
+                  child: new Center()
                 )
             )
-        )
-    );
+//        )
+//        )
+        );
   }
 
   Widget _button() {
