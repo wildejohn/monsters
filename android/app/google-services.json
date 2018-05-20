@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "808326875156",
-    "firebase_url": "https://fir-flutter-app-12964.firebaseio.com",
-    "project_id": "fir-flutter-app-12964",
-    "storage_bucket": "fir-flutter-app-12964.appspot.com"
+    "project_number": "924690699395",
+    "firebase_url": "https://hom2-40e87.firebaseio.com",
+    "project_id": "hom2-40e87",
+    "storage_bucket": "hom2-40e87.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:808326875156:android:cff5b7d420dfcbfe",
+        "mobilesdk_app_id": "1:924690699395:android:cff5b7d420dfcbfe",
         "android_client_info": {
           "package_name": "com.jw.monsters"
         }
       },
       "oauth_client": [
         {
-          "client_id": "808326875156-r1raf26cmre6teuqi10uv7490lems2ef.apps.googleusercontent.com",
+          "client_id": "924690699395-7k7mgn45p422ogvd9vhqo282bjvf1i8m.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.jw.monsters",
@@ -23,13 +23,13 @@
           }
         },
         {
-          "client_id": "808326875156-fh8c9afi44ojbnuu1jhru7cq2vog8t6o.apps.googleusercontent.com",
+          "client_id": "924690699395-nvf6drd0459r2gvfjsgt7hp2lmn74s2k.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCwue-VVPkT6hL7pk-oXgG8-IEgY7Yoxi8"
+          "current_key": "AIzaSyD-_UgZfrDDQB4Lp7Sv1f5-40vhCY1kjlI"
         }
       ],
       "services": {
@@ -40,7 +40,7 @@
           "status": 2,
           "other_platform_oauth_client": [
             {
-              "client_id": "808326875156-fh8c9afi44ojbnuu1jhru7cq2vog8t6o.apps.googleusercontent.com",
+              "client_id": "924690699395-nvf6drd0459r2gvfjsgt7hp2lmn74s2k.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
