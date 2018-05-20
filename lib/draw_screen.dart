@@ -3,11 +3,12 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:firebase_storage/firebase_storage.dart';          // new
 
 // How close a drag's start position must be to the target point. This is
 // a distance squared.
@@ -37,12 +38,29 @@ class _DragHandler extends Drag {
 }
 
 class DrawingStorage {
+  final int drawingType;
+  final String gameKey;
+  DrawingStorage(this.drawingType, this.gameKey);
+
   Future<String> get _localPath async {
-    final directory = await getApplicationDocumentsDirectory();
+//    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExternalStorageDirectory();
 
     return directory.path;
   }
 
+  String getDrawingType() {
+    switch (drawingType) {
+      case 1:
+        return 'head';
+      case 2:
+        return 'body';
+      case 3:
+        return 'legs';
+      default:
+        return '';
+    }
+  }
   Future<File> get _localFile async {
     final path = await _localPath;
     return new File('$path/image.png');
@@ -62,22 +80,33 @@ class DrawingStorage {
     }
   }
 
-  Future<File> writeImage(ByteData data) async {
+  Future<void> writeImage(ByteData data) async {
     final file = await _localFile;
-
     // Write the file
-    return file.writeAsBytes(data.buffer.asUint8List());
+    file.writeAsBytes(data.buffer.asUint8List());
+
+    StorageReference ref = FirebaseStorage.instance.ref()
+        .child("$gameKey-$drawingType.jpg"); //new
+    StorageUploadTask uploadTask = ref.put(file); //new
+    Uri downloadUrl = (await uploadTask.future).downloadUrl;
+
+    return FirebaseDatabase.instance.reference()
+        .child('game')
+        .child(gameKey)
+        .set(<String, String>{getDrawingType() : downloadUrl.toString()});
   }
 }
 
 class DrawScreen extends StatefulWidget {
-  final DrawingStorage storage  = new DrawingStorage();
-
-  DrawScreen({
-    this.drawingType
-  }) : super();
-
   final int drawingType;
+  final String gameKey;
+  final DrawingStorage storage;
+
+  DrawScreen({drawingType, gameKey})
+      : drawingType = drawingType,
+        gameKey = gameKey,
+        storage = new DrawingStorage(drawingType, gameKey),
+        super();
 
   @override
   State createState() {
@@ -104,7 +133,7 @@ class _ScreenPainter extends CustomPainter {
 
   static void drawPoints(Canvas canvas, List<Offset> points, Color color) {
     final Paint paint = new Paint()
-      ..color = color.withOpacity(0.25)
+      ..color = color.withOpacity(.25)
       ..strokeWidth = 4.0
       ..style = PaintingStyle.stroke;
     canvas.drawPoints(PointMode.points, points, paint);
@@ -154,6 +183,12 @@ class DrawState extends State<DrawScreen> {
   void _handleDragEnd(DragEndDetails details) {
   }
 
+  void _clear() {
+    setState(() {
+      _points.clear();
+    });
+  }
+
   void _save() async {
     print("Save tapped");
    // https://groups.google.com/forum/#!msg/flutter-dev/yCzw8sutC-E/zo2GZw87BgAJ
@@ -181,23 +216,34 @@ class DrawState extends State<DrawScreen> {
                 },
               ),
             },
-//            child: new ClipRect(
-//            child: new Center(
-                child: new CustomPaint(
-                  key: _painterKey,
-                  painter: new _ScreenPainter(
-                      myRect: _begin,
-                      points: _points
-                  ),
-                  child: new Center()
-                )
+            child: new CustomPaint(
+                key: _painterKey,
+                painter: new _ScreenPainter(
+                    myRect: _begin,
+                    points: _points
+                ),
+                child: new Center()
             )
-//        )
-//        )
-        );
+        )
+    );
   }
 
-  Widget _button() {
+  Widget _buttonClear() {
+    return new FlatButton(
+        color: Colors.red,
+        onPressed: () async {
+          _clear();
+        },
+        child: new Text('Clear',
+            style: Theme
+                .of(context)
+                .textTheme
+                .caption
+                .copyWith(fontSize: 16.0)
+        )
+    );
+  }
+  Widget _buttonDone() {
     return new FlatButton(
         color: Colors.red,
         onPressed: () async {
@@ -229,7 +275,12 @@ class DrawState extends State<DrawScreen> {
     return new Row(
         children: <Widget>[
           _gesture(context),
-          _button()
+          new Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                _buttonDone(),
+                _buttonClear()
+              ])
         ]);
   }
 }

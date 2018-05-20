@@ -52,7 +52,6 @@ class MonstersApp extends StatelessWidget {
           : kDefaultTheme,
       routes: <String, WidgetBuilder>{
         '/':         (BuildContext context) => new HomeScreen(),
-        '/new':      (BuildContext context) => new NewGameScreen(),
       },
       onGenerateRoute: _getRoute,
     );
@@ -66,14 +65,26 @@ class MonstersApp extends StatelessWidget {
     if (path[0] != '')
       return null;
     if (path[1].startsWith('draw')) {
-      if (path.length != 3)
+      if (path.length != 4)
         return null;
       final int symbol = int.parse(path[2]);
+      final String gameKey = path[3];
       return new MaterialPageRoute<Null>(
         settings: settings,
-        builder: (BuildContext context) => new DrawScreen(drawingType: symbol)
+        builder: (BuildContext context) => new DrawScreen(
+            drawingType: symbol,
+            gameKey: gameKey)
+      );
+    } else if (path[1].startsWith('new')) {
+      final String gameKey = path[2];
+      return new MaterialPageRoute<Null>(
+          settings: settings,
+          builder: (BuildContext context) => new NewGameScreen(
+              gameKey: gameKey
+          )
       );
     }
+
     // The other paths we support are in the routes table.
     return null;
   }

@@ -28,6 +28,38 @@ class HomeScreen extends StatefulWidget {
 
 class HomeScreenState extends State<HomeScreen> {
 
+  DatabaseReference _gameRef;
+  DatabaseReference _newGameRef;
+  DatabaseError _error;
+  String _gameId;
+  StreamSubscription<Event> _gameSubscription;
+
+
+  @override
+  void initState() {
+    super.initState();
+    // Demonstrates configuring to the database using a file
+    _gameRef = FirebaseDatabase.instance.reference().child('game');
+    _gameSubscription = _gameRef.onChildAdded.listen((Event event) {
+      setState(() {
+        _error = null;
+        _gameId = event.snapshot.key ?? 0;
+        print(event.snapshot.key);
+      });
+    }, onError: (Object o) {
+      final DatabaseError error = o;
+      setState(() {
+        _error = error;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _gameSubscription.cancel();
+  }
+
   final reference = FirebaseDatabase.instance.reference().child('login');
   bool _isLoggedIn = false;
 
@@ -110,7 +142,9 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _newGame() {
-    Navigator.pushNamed(context, "/new");
+    _newGameRef = _gameRef.push();
+    _newGameRef.set(<String, String>{'user' : 'john'});
+    Navigator.pushNamed(context, "/new/${_newGameRef.key}");
   }
 
   Widget _buildButtons() {

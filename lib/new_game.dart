@@ -2,7 +2,10 @@ import 'package:flutter/widgets.dart';
 
 
 class NewGameScreen extends StatelessWidget {
-  NewGameScreen();
+  final String gameKey;
+  NewGameScreen({
+    this.gameKey
+  }) : super();
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +30,7 @@ class NewGameScreen extends StatelessWidget {
 
   Widget _button(BuildContext context, String assetPath, int type){
     return new Expanded(child: new GestureDetector(
-      onTap: () => _newDrawing(context, '/draw/$type'),
+      onTap: () => _newDrawing(context, '/draw/$type/$gameKey'),
       child: Image.asset(
         assetPath,
         width: 200.0,
