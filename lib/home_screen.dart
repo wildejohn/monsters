@@ -147,6 +147,10 @@ class HomeScreenState extends State<HomeScreen> {
     Navigator.pushNamed(context, "/new/${_newGameRef.key}");
   }
 
+  void _gameList() {
+    Navigator.pushNamed(context, "/gameList");
+  }
+
   Widget _buildButtons() {
     String text = _isLoggedIn ? "Log Out" : "Login";
     if (_isLoggedIn) {
@@ -156,6 +160,7 @@ class HomeScreenState extends State<HomeScreen> {
           children: [
             _buildButton(text, _logInOrOut),
             _buildButton("Start", _newGame),
+            _buildButton("In Progress", _gameList),
           ],
         ),
       );

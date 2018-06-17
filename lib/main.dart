@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:monsters/draw_screen.dart';
+import 'package:monsters/game_list.dart';
 import 'package:monsters/home_screen.dart';
 import 'package:monsters/new_game.dart';
 // new
@@ -52,6 +53,7 @@ class MonstersApp extends StatelessWidget {
           : kDefaultTheme,
       routes: <String, WidgetBuilder>{
         '/':         (BuildContext context) => new HomeScreen(),
+        '/gameList':         (BuildContext context) => new GameListScreen(),
       },
       onGenerateRoute: _getRoute,
     );
@@ -76,6 +78,7 @@ class MonstersApp extends StatelessWidget {
             gameKey: gameKey)
       );
     } else if (path[1].startsWith('new')) {
+      print(path);
       final String gameKey = path[2];
       return new MaterialPageRoute<Null>(
           settings: settings,

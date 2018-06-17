@@ -13,6 +13,7 @@ class NewGameScreen extends StatefulWidget {
   @override
   State createState() => new NewGameState();
 }
+
 class NewGameState extends State<NewGameScreen> {
 
   Future<List<String>> getParts() {
@@ -38,7 +39,7 @@ class NewGameState extends State<NewGameScreen> {
       builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
         switch (snapshot.connectionState) {
           case ConnectionState.none:
-            return new Text('Press button to start');
+            return new Text('something went wrong');
           case ConnectionState.waiting:
             return new Text('Awaiting result...');
           default:

@@ -7,6 +7,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:monsters/home_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_storage/firebase_storage.dart';          // new
 
@@ -93,7 +95,12 @@ class DrawingStorage {
     return FirebaseDatabase.instance.reference()
         .child('game')
         .child(gameKey)
-        .set(<String, String>{getDrawingType() : downloadUrl.toString()});
+        .child(getDrawingType())
+        .set(<String, String>{
+      getDrawingType() : downloadUrl.toString(),
+      'senderPhotoUrl' : googleSignIn.currentUser.photoUrl,
+      'senderName' : googleSignIn.currentUser.displayName
+    });
   }
 }
 
