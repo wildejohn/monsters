@@ -161,6 +161,7 @@ class HomeScreenState extends State<HomeScreen> {
             _buildButton(text, _logInOrOut),
             _buildButton("Start", _newGame),
             _buildButton("In Progress", _gameList),
+            _buildButton("Finished", () => Navigator.pushNamed(context, "/finishedGameList")),
           ],
         ),
       );

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_database/ui/firebase_animated_list.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -11,8 +12,8 @@ class Game extends StatelessWidget {
   final DataSnapshot snapshot;
   final Animation animation;
 
-  void _newDrawing(BuildContext context, String path) {
-    Navigator.popAndPushNamed(context, path);
+  void _show(BuildContext context, String path) {
+    Navigator.pushNamed(context, path);
   }
 
   List<Widget> avatars(List<dynamic> urls) {
@@ -30,6 +31,14 @@ class Game extends StatelessWidget {
     );
   }
 
+  Future<dynamic> getUrl(dynamic gameId) async  {
+    String loc = "$gameId/merge.jpg";
+    print(loc);
+    StorageReference ref = FirebaseStorage.instance.ref()
+        .child(loc);
+    return ref.getDownloadURL();
+  }
+
   Widget build(BuildContext context) {
     return new SizeTransition(
       sizeFactor: new CurvedAnimation(
@@ -40,29 +49,14 @@ class Game extends StatelessWidget {
       child: new Container(
         margin: const EdgeInsets.symmetric(vertical: 10.0),
         child: new GestureDetector(
-          onTap: () => _newDrawing(context, "/new/${snapshot.value['ref']}"),
+          onTap: () async {
+            String url  = await getUrl(snapshot.key);
+            print("got url: $url");
+            _show(context, "/show/$url");
+          },
           child: new Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: avatars(snapshot.value['urls'])
-//              ),
-//              new Expanded(
-//                child: new Column(
-//                  crossAxisAlignment: CrossAxisAlignment.start,
-//                  children: <Widget>[
-//                    new Text(snapshot.value['senderName'],
-//                        style: Theme.of(context).textTheme.subhead),
-//                  new Container(
-//                    margin: const EdgeInsets.only(top: 5.0),
-//                    child: snapshot.value['imageUrl'] != null ?
-//                    new Image.network(
-//                      snapshot.value['imageUrl'],
-//                      width: 250.0,
-//                    ) : new Text(snapshot.value['text']),
-//                  ),
-//                  ],
-//                ),
-//              ),
-//            ],
           ),
         )
       ),
@@ -70,25 +64,20 @@ class Game extends StatelessWidget {
   }
 }
 
-class GameListScreen extends StatefulWidget {
-  final String gameKey;
-  GameListScreen({
-    this.gameKey
-  }) : super();
-
+class FinishedGameListScreen extends StatefulWidget {
   @override
-  State createState() => new GameListState();
+  State createState() => new FinishedGameListState();
 }
 
-class GameListState extends State<GameListScreen> {
+class FinishedGameListState extends State<FinishedGameListScreen> {
   final DatabaseReference ref = FirebaseDatabase.instance.reference()
-      .child('inProgress');
+      .child('finished');
 
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
         appBar: new AppBar(
-          title: new Text("Join a game"),
+          title: new Text("Finished Games"),
           elevation: Theme
               .of(context)
               .platform == TargetPlatform.iOS ? 0.0 : 4.0,
@@ -106,25 +95,11 @@ class GameListState extends State<GameListScreen> {
                   int index) {
                 return new Game(
                     snapshot: snapshot,
-                    animation: animation
+                    animation: animation,
                 );
               },
             ),
           ),
         ]));
-  }
-
-  Widget getButtons(BuildContext context, List<String> parts) {
-    return new Container(
-      height: 56.0, // in logical pixels
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      // Row is a horizontal, linear layout.
-      child: new Row(
-        // <Widget> is the type of items in the list.
-        children: <Widget>[
-          new Text("hi")
-        ],
-      ),
-    );
   }
 }

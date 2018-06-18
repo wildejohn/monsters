@@ -45,7 +45,6 @@ class DrawingStorage {
   DrawingStorage(this.drawingType, this.gameKey);
 
   Future<String> get _localPath async {
-//    final directory = await getApplicationDocumentsDirectory();
     final directory = await getExternalStorageDirectory();
 
     return directory.path;
@@ -88,8 +87,8 @@ class DrawingStorage {
     file.writeAsBytes(data.buffer.asUint8List());
 
     StorageReference ref = FirebaseStorage.instance.ref()
-        .child("$gameKey-$drawingType.jpg"); //new
-    StorageUploadTask uploadTask = ref.put(file); //new
+        .child("$gameKey-$drawingType.jpg");
+    StorageUploadTask uploadTask = ref.put(file);
     Uri downloadUrl = (await uploadTask.future).downloadUrl;
 
     return FirebaseDatabase.instance.reference()
@@ -196,7 +195,7 @@ class DrawState extends State<DrawScreen> {
     });
   }
 
-  void _save() async {
+  Future _save() async {
     print("Save tapped");
    // https://groups.google.com/forum/#!msg/flutter-dev/yCzw8sutC-E/zo2GZw87BgAJ
     PictureRecorder recorder = new PictureRecorder();
@@ -206,7 +205,7 @@ class DrawState extends State<DrawScreen> {
     ByteData b = await p
         .toImage(_screenSize.width.floor(), _screenSize.height.floor())
         .toByteData(format: ImageByteFormat.png);
-    widget.storage.writeImage(b);
+    return widget.storage.writeImage(b);
   }
 
   Widget _gesture(BuildContext context) {
@@ -255,6 +254,7 @@ class DrawState extends State<DrawScreen> {
         color: Colors.red,
         onPressed: () async {
           _save();
+          Navigator.pop(context);
         },
         child: new Text('Done',
             style: Theme

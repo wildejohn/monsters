@@ -9,9 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:monsters/draw_screen.dart';
+import 'package:monsters/finished_game_list.dart';
 import 'package:monsters/game_list.dart';
 import 'package:monsters/home_screen.dart';
 import 'package:monsters/new_game.dart';
+import 'package:monsters/show_image_screen.dart';
 // new
 // new
 //import 'package:firebase_analytics/firebase_analytics.dart';      // new
@@ -53,6 +55,7 @@ class MonstersApp extends StatelessWidget {
           : kDefaultTheme,
       routes: <String, WidgetBuilder>{
         '/':         (BuildContext context) => new HomeScreen(),
+        '/finishedGameList': (BuildContext context) => new FinishedGameListScreen(),
         '/gameList':         (BuildContext context) => new GameListScreen(),
       },
       onGenerateRoute: _getRoute,
@@ -84,6 +87,15 @@ class MonstersApp extends StatelessWidget {
           settings: settings,
           builder: (BuildContext context) => new NewGameScreen(
               gameKey: gameKey
+          )
+      );
+    } else if (path[1].startsWith('show')) {
+      final String downloadUrl = settings.name.substring(6);
+      print(downloadUrl);
+      return new MaterialPageRoute<Null>(
+          settings: settings,
+          builder: (BuildContext context) => new ShowImageScreen(
+              url: downloadUrl
           )
       );
     }
