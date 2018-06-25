@@ -67,17 +67,65 @@ class DrawingStorage {
     return new File('$path/image.png');
   }
 
-  Future<int> readCounter() async {
+  bool hasBottomHint() {
+    switch (drawingType) {
+      case 3:
+        return false;
+    }
+    return true;
+  }
+
+  bool hasTopHint() {
+    switch (drawingType) {
+      case 1:
+        return false;
+    }
+    return true;
+  }
+
+  Future<String> topHint() async {
+    StorageReference ref = FirebaseStorage.instance.ref();
+    Future<dynamic> future;
+    switch (drawingType) {
+      case 1:
+        future = new Future<dynamic>.value('');
+        break;
+      case 2:
+        future = ref.child("$gameKey/1south.jpg").getDownloadURL();
+        break;
+      case 3:
+        future = ref.child("$gameKey/2south.jpg").getDownloadURL();
+        break;
+    }
     try {
-      final file = await _localFile;
-
-      // Read the file
-      String contents = await file.readAsString();
-
-      return int.parse(contents);
+      String url = await future;
+      return url;
     } catch (e) {
-      // If we encounter an error, return 0
-      return 0;
+      print(e);
+      return "";
+    }
+  }
+
+  Future<String> bottomHint() async {
+    StorageReference ref = FirebaseStorage.instance.ref();
+    Future<dynamic> future;
+    switch (drawingType) {
+      case 1:
+        future = ref.child("$gameKey/2north.jpg").getDownloadURL();
+        break;
+      case 2:
+        future = ref.child("$gameKey/3north.jpg").getDownloadURL();
+        break;
+      case 3:
+        future = new Future<dynamic>.value('');
+        break;
+    }
+    try {
+      String url = await future;
+      return url;
+    } catch (e) {
+      print(e);
+      return "";
     }
   }
 
@@ -168,7 +216,22 @@ class DrawState extends State<DrawScreen> {
   Rect _begin;
   Size _screenSize;
   List<Offset> _points = new List<Offset>();
+  Widget _result;
 
+  @override
+  void initState() {
+    // You can't use async/await here,
+    // We can't mark this method as async because of the @override
+    _gesture(context).then((result) {
+      // If we need to rebuild the widget with the resulting data,
+      // make sure to use `setState`
+      setState(() {
+        _result = result;
+      });
+    });
+
+  }
+  
   Drag _handleOnStart(Offset position) {
     print(position);
     return new _DragHandler(
@@ -208,29 +271,72 @@ class DrawState extends State<DrawScreen> {
     return widget.storage.writeImage(b);
   }
 
-  Widget _gesture(BuildContext context) {
-    return new Expanded(
-        child: new RawGestureDetector(
-            behavior: HitTestBehavior.deferToChild,
-            gestures: <Type, GestureRecognizerFactory>{
-              ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers
-              <ImmediateMultiDragGestureRecognizer>(
-                    () => new ImmediateMultiDragGestureRecognizer(),
-                    (ImmediateMultiDragGestureRecognizer instance) {
-                  instance
-                    ..onStart = _handleOnStart;
+  Future<dynamic> getUrl(dynamic gameId) async  {
+    String loc = "$gameId/jpg";
+    print(loc);
+    StorageReference ref = FirebaseStorage.instance.ref()
+        .child(loc);
+    return ref.getDownloadURL();
+  }
+
+  Future<Widget> topHint() async {
+    String url = await widget.storage.topHint();
+    if (url.isNotEmpty) {
+      return new Positioned(
+        top: 1.0,
+        left: 1.0,
+        right: 1.0,
+        child: Image.network(url),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  Future<Widget> bottomHint() async {
+    String url = await widget.storage.bottomHint();
+    if (url.isNotEmpty) {
+      String url = await widget.storage.bottomHint();
+      return new Positioned(
+        bottom: 1.0,
+        left: 1.0,
+        right: 1.0,
+        child: Image.network(url),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  Future<Widget> _gesture(BuildContext context) async {
+    List<Widget> widgets = await Future.wait([topHint(),bottomHint()]);
+    return new Stack(
+      children: widgets + [
+        Expanded(
+            child: new RawGestureDetector(
+                behavior: HitTestBehavior.deferToChild,
+                gestures: <Type, GestureRecognizerFactory>{
+                  ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers
+                  <ImmediateMultiDragGestureRecognizer>(
+                        () => new ImmediateMultiDragGestureRecognizer(),
+                        (ImmediateMultiDragGestureRecognizer instance) {
+                      instance
+                        ..onStart = _handleOnStart;
+                    },
+                  ),
                 },
-              ),
-            },
-            child: new CustomPaint(
-                key: _painterKey,
-                painter: new _ScreenPainter(
-                    myRect: _begin,
-                    points: _points
-                ),
-                child: new Center()
+                child: new CustomPaint(
+                    key: _painterKey,
+                    painter: new _ScreenPainter(
+                        myRect: _begin,
+                        points: _points
+                    ),
+                    child: new Center()
+                )
             )
         )
+      ],
+
     );
   }
 
@@ -279,15 +385,19 @@ class DrawState extends State<DrawScreen> {
       );
     }
 
-    return new Row(
-        children: <Widget>[
-          _gesture(context),
-          new Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                _buttonDone(),
-                _buttonClear()
-              ])
-        ]);
+    if (_result == null) {
+      return new Text("loading");
+    } else {
+      return new Row(
+          children: [
+            _result,
+            new Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  _buttonDone(),
+                  _buttonClear()
+                ])
+          ]);
+    }
   }
 }

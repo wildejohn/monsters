@@ -14,15 +14,6 @@ import 'package:monsters/game_list.dart';
 import 'package:monsters/home_screen.dart';
 import 'package:monsters/new_game.dart';
 import 'package:monsters/show_image_screen.dart';
-// new
-// new
-//import 'package:firebase_analytics/firebase_analytics.dart';      // new
-// new
-//import 'package:firebase_database/firebase_database.dart';         //new
-//import 'package:firebase_database/ui/firebase_animated_list.dart'; //new
-//import 'package:firebase_storage/firebase_storage.dart';          // new
-// new
-// new
 
 
 final googleSignIn = new GoogleSignIn();
