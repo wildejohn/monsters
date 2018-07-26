@@ -62,25 +62,10 @@ class DrawingStorage {
         return '';
     }
   }
+
   Future<File> get _localFile async {
     final path = await _localPath;
     return new File('$path/image.png');
-  }
-
-  bool hasBottomHint() {
-    switch (drawingType) {
-      case 3:
-        return false;
-    }
-    return true;
-  }
-
-  bool hasTopHint() {
-    switch (drawingType) {
-      case 1:
-        return false;
-    }
-    return true;
   }
 
   Future<String> topHint() async {
@@ -101,6 +86,7 @@ class DrawingStorage {
       String url = await future;
       return url;
     } catch (e) {
+      print("no top hint");
       print(e);
       return "";
     }
@@ -124,6 +110,7 @@ class DrawingStorage {
       String url = await future;
       return url;
     } catch (e) {
+      print("no bottom hint");
       print(e);
       return "";
     }
@@ -218,10 +205,10 @@ class DrawState extends State<DrawScreen> {
   List<Offset> _points = new List<Offset>();
   Widget _result;
 
+  // You can't use async/await here,
+  // We can't mark this method as async because of the @override
   @override
   void initState() {
-    // You can't use async/await here,
-    // We can't mark this method as async because of the @override
     _gesture(context).then((result) {
       // If we need to rebuild the widget with the resulting data,
       // make sure to use `setState`
@@ -229,7 +216,6 @@ class DrawState extends State<DrawScreen> {
         _result = result;
       });
     });
-
   }
   
   Drag _handleOnStart(Offset position) {
@@ -281,14 +267,17 @@ class DrawState extends State<DrawScreen> {
 
   Future<Widget> topHint() async {
     String url = await widget.storage.topHint();
+    print("url is: $url");
     if (url.isNotEmpty) {
-      return new Positioned(
-        top: 1.0,
-        left: 1.0,
-        right: 1.0,
-        child: Image.network(url),
-      );
+      return Image.network(url);
+//      return new Positioned(
+//        top: 1.0,
+//        left: 1.0,
+//        right: 1.0,
+//        child: Image.network(url),
+//      );
     } else {
+      print("returning null");
       return null;
     }
   }
@@ -297,22 +286,21 @@ class DrawState extends State<DrawScreen> {
     String url = await widget.storage.bottomHint();
     if (url.isNotEmpty) {
       String url = await widget.storage.bottomHint();
-      return new Positioned(
-        bottom: 1.0,
-        left: 1.0,
-        right: 1.0,
-        child: Image.network(url),
-      );
+      return Image.network(url);
+////      return new Positioned(
+////        bottom: 1.0,
+////        left: 1.0,
+////        right: 1.0,
+////        child: Image.network(url),
+//      );
     } else {
       return null;
     }
   }
 
   Future<Widget> _gesture(BuildContext context) async {
-    List<Widget> widgets = await Future.wait([topHint(),bottomHint()]);
-    return new Stack(
-      children: widgets + [
-        Expanded(
+    return new Column(
+        children: [new Expanded(
             child: new RawGestureDetector(
                 behavior: HitTestBehavior.deferToChild,
                 gestures: <Type, GestureRecognizerFactory>{
@@ -334,11 +322,82 @@ class DrawState extends State<DrawScreen> {
                     child: new Center()
                 )
             )
-        )
-      ],
-
+        )]
     );
   }
+//  Future<Widget> _gesture(BuildContext context) async {
+//    List<Widget> widgets = await Future.wait([topHint(), bottomHint()]);
+//    List<Widget> filtered = widgets.toList();
+//    filtered.insert(1, Expanded(
+//            child: new RawGestureDetector(
+//                behavior: HitTestBehavior.deferToChild,
+//                gestures: <Type, GestureRecognizerFactory>{
+//                  ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers
+//                  <ImmediateMultiDragGestureRecognizer>(
+//                        () => new ImmediateMultiDragGestureRecognizer(),
+//                        (ImmediateMultiDragGestureRecognizer instance) {
+//                      instance
+//                        ..onStart = _handleOnStart;
+//                    },
+//                  ),
+//                },
+//                child: new CustomPaint(
+//                    key: _painterKey,
+//                    painter: new _ScreenPainter(
+//                        myRect: _begin,
+//                        points: _points
+//                    ),
+//                    child: new Center()
+//                )
+//            )
+//        ));
+//    filtered.removeWhere((widget) {
+//      print("widget: $widget");
+//      return (widget == null);
+//    });
+//    print("num hints: ${filtered.length}");
+//    return new Column(
+//      children: filtered
+//    );
+//  }
+
+//  Future<Widget> _gesture(BuildContext context) async {
+//    List<Widget> widgets = await Future.wait([topHint(), bottomHint()]);
+//    List<Widget> filtered = widgets.toList();
+//    filtered.removeWhere((widget) {
+//      print("widget: $widget");
+//      return (widget == null);
+//    });
+//    print("num hints: ${widgets.length}");
+//    filtered.add(
+//        Expanded(
+//            child: new RawGestureDetector(
+//                behavior: HitTestBehavior.deferToChild,
+//                gestures: <Type, GestureRecognizerFactory>{
+//                  ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers
+//                  <ImmediateMultiDragGestureRecognizer>(
+//                        () => new ImmediateMultiDragGestureRecognizer(),
+//                        (ImmediateMultiDragGestureRecognizer instance) {
+//                      instance
+//                        ..onStart = _handleOnStart;
+//                    },
+//                  ),
+//                },
+//                child: new CustomPaint(
+//                    key: _painterKey,
+//                    painter: new _ScreenPainter(
+//                        myRect: _begin,
+//                        points: _points
+//                    ),
+//                    child: new Center()
+//                )
+//            )
+//        )
+//    );
+//    return new Stack(
+//      children: filtered
+//    );
+//  }
 
   Widget _buttonClear() {
     return new FlatButton(
