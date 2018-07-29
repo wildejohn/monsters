@@ -54,21 +54,24 @@ class DrawScreen extends StatefulWidget {
 }
 
 class DrawState extends State<DrawScreen> {
-  Rect _begin;
-  Size _screenSize;
   List<Offset> _points = new List<Offset>();
+  GlobalKey painterKey = new GlobalKey();
 
   Drag _handleOnStart(Offset position) {
-    print(position);
+//    print(position);
     return new _DragHandler(
         _handleDragUpdate, _handleDragCancel, _handleDragEnd);
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
     setState(() {
-      print(details);
-      _points.add(details.globalPosition);
-      _begin = _begin.shift(details.delta);
+      final keyContext = painterKey.currentContext;
+      RenderBox object = keyContext.findRenderObject();
+      Offset _localPosition = object.globalToLocal(details.globalPosition);
+      if (object.size.contains(_localPosition)) {
+        _points = new List.from(_points)..add(_localPosition);
+      }
+      print(_localPosition);
     });
   }
 
@@ -89,8 +92,9 @@ class DrawState extends State<DrawScreen> {
     Canvas c = new Canvas(recorder);
     ScreenPainter.drawPoints(c, _points, Colors.red);
     Picture p = recorder.endRecording();
+    Size screenSize = MediaQuery.of(context).size;
     ByteData b = await p
-        .toImage(_screenSize.width.floor(), _screenSize.height.floor())
+        .toImage(screenSize.width.floor(), screenSize.height.floor())
         .toByteData(format: ImageByteFormat.png);
     return widget.storage.writeImage(b);
   }
@@ -129,27 +133,6 @@ class DrawState extends State<DrawScreen> {
     }
   }
 
-  Widget painterWidget() {
-    return new Expanded(
-        child: new RawGestureDetector(
-            behavior: HitTestBehavior.deferToChild,
-            excludeFromSemantics: true,
-            gestures: <Type, GestureRecognizerFactory>{
-              ImmediateMultiDragGestureRecognizer:
-                  new GestureRecognizerFactoryWithHandlers<
-                      ImmediateMultiDragGestureRecognizer>(
-                () => new ImmediateMultiDragGestureRecognizer(),
-                (ImmediateMultiDragGestureRecognizer instance) {
-                  instance..onStart = _handleOnStart;
-                },
-              ),
-            },
-            child: new CustomPaint(
-                painter:
-                    new ScreenPainter(myRect: startRect(), points: _points),
-                child: new Center())));
-  }
-
   Widget _buttonClear() {
     return new FlatButton(
         color: Colors.red,
@@ -173,19 +156,6 @@ class DrawState extends State<DrawScreen> {
                 Theme.of(context).textTheme.caption.copyWith(fontSize: 16.0)));
   }
 
-  Rect startRect() {
-    final Size screenSize = MediaQuery.of(context).size;
-    if (_screenSize == null || _screenSize != screenSize) {
-      _screenSize = screenSize;
-      _begin = new Rect.fromLTWH(
-          screenSize.width * 0.5,
-          screenSize.height * 0.2,
-          screenSize.width * 0.4,
-          screenSize.height * 0.2);
-    }
-    return _begin;
-  }
-
   Widget getFutureWidget(Future<Widget> calc) {
     return new FutureBuilder<Widget>(
         future: calc,
@@ -204,19 +174,36 @@ class DrawState extends State<DrawScreen> {
         });
   }
 
-  Widget painterWidgets(BuildContext context) {
-    List<Widget> widgets = [
-      topHintImage == null ? getFutureWidget(topHint()) : topHintImage,
-      painterWidget(),
-      bottomHintImage == null ? getFutureWidget(bottomHint()) : bottomHintImage,
-    ];
-    return new Expanded(child: new Column(children: widgets));
+  Widget painterWidget() {
+    return new RawGestureDetector(
+        key: painterKey,
+        behavior: HitTestBehavior.deferToChild,
+        excludeFromSemantics: true,
+        gestures: <Type, GestureRecognizerFactory>{
+          ImmediateMultiDragGestureRecognizer:
+              new GestureRecognizerFactoryWithHandlers<
+                  ImmediateMultiDragGestureRecognizer>(
+            () => new ImmediateMultiDragGestureRecognizer(),
+            (ImmediateMultiDragGestureRecognizer instance) {
+              instance..onStart = _handleOnStart;
+            },
+          ),
+        },
+        child: new CustomPaint(
+          painter: new ScreenPainter(points: _points),
+          child: new Center(),
+        ));
   }
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> widgets = [
+      topHintImage == null ? getFutureWidget(topHint()) : topHintImage,
+      new Expanded(child: painterWidget()),
+      bottomHintImage == null ? getFutureWidget(bottomHint()) : bottomHintImage,
+    ];
     return new Row(children: [
-      painterWidgets(context),
+      new Expanded(child: new Column(children: widgets)),
       new Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[_buttonDone(), _buttonClear()])
