@@ -33,8 +33,7 @@ class ScreenPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(ScreenPainter oldDelegate) {
-//    return myRect != oldDelegate.myRect;
-    return false;
+    return myRect != oldDelegate.myRect;
   }
 
   @override

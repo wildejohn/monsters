@@ -54,7 +54,6 @@ class DrawScreen extends StatefulWidget {
 }
 
 class DrawState extends State<DrawScreen> {
-  final GlobalKey _painterKey = new GlobalKey();
   Rect _begin;
   Size _screenSize;
   List<Offset> _points = new List<Offset>();
@@ -103,21 +102,27 @@ class DrawState extends State<DrawScreen> {
     return ref.getDownloadURL();
   }
 
+  Widget topHintImage;
+  Widget bottomHintImage;
+
   Future<Widget> topHint() async {
-    String url = await widget.storage.topHint();
-    print("url is: $url");
-    if (url.isNotEmpty) {
-      return Image.network(url);
-    } else {
-      return new Container();
-//      return new Container(width: 0.0, height: 0.0);
+    if (topHintImage == null) {
+      String url = await widget.storage.topHint();
+      topHintImage = getHint(url);
     }
+    return topHintImage;
   }
 
   Future<Widget> bottomHint() async {
-    String url = await widget.storage.bottomHint();
-    if (url.isNotEmpty) {
+    if (bottomHintImage == null) {
       String url = await widget.storage.bottomHint();
+      bottomHintImage = getHint(url);
+    }
+    return bottomHintImage;
+  }
+
+  Widget getHint(String url) {
+    if (url.isNotEmpty) {
       return Image.network(url);
     } else {
       return new Container(width: 0.0, height: 0.0);
@@ -125,9 +130,7 @@ class DrawState extends State<DrawScreen> {
   }
 
   Widget painterWidget() {
-    return new Container(
-        width: 100.0,
-        height: 100.0,
+    return new Expanded(
         child: new RawGestureDetector(
             behavior: HitTestBehavior.deferToChild,
             excludeFromSemantics: true,
@@ -191,22 +194,21 @@ class DrawState extends State<DrawScreen> {
             case ConnectionState.none:
               return new Text('Press button to start');
             case ConnectionState.waiting:
-              return new Text('Awaiting result...');
+              return new Text('loading...');
             default:
               if (snapshot.hasError)
                 return new Text('Error: ${snapshot.error}');
               else
-                print("have data: ${snapshot.data}");
-              return snapshot.data;
+                return snapshot.data;
           }
         });
   }
 
   Widget painterWidgets(BuildContext context) {
     List<Widget> widgets = [
-      getFutureWidget(topHint()),
+      topHintImage == null ? getFutureWidget(topHint()) : topHintImage,
       painterWidget(),
-//      await bottomHint()
+      bottomHintImage == null ? getFutureWidget(bottomHint()) : bottomHintImage,
     ];
     return new Expanded(child: new Column(children: widgets));
   }
