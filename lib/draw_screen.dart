@@ -1,16 +1,13 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:monsters/home_screen.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:firebase_storage/firebase_storage.dart';          // new
+import 'package:flutter/widgets.dart';
+import 'package:monsters/drawing_storage.dart';
+import 'package:monsters/screen_painter.dart';
 
 // How close a drag's start position must be to the target point. This is
 // a distance squared.
@@ -39,105 +36,6 @@ class _DragHandler extends Drag {
   }
 }
 
-class DrawingStorage {
-  final int drawingType;
-  final String gameKey;
-  DrawingStorage(this.drawingType, this.gameKey);
-
-  Future<String> get _localPath async {
-    final directory = await getExternalStorageDirectory();
-
-    return directory.path;
-  }
-
-  String getDrawingType() {
-    switch (drawingType) {
-      case 1:
-        return 'head';
-      case 2:
-        return 'body';
-      case 3:
-        return 'legs';
-      default:
-        return '';
-    }
-  }
-
-  Future<File> get _localFile async {
-    final path = await _localPath;
-    return new File('$path/image.png');
-  }
-
-  Future<String> topHint() async {
-    StorageReference ref = FirebaseStorage.instance.ref();
-    Future<dynamic> future;
-    switch (drawingType) {
-      case 1:
-        future = new Future<dynamic>.value('');
-        break;
-      case 2:
-        future = ref.child("$gameKey/1south.jpg").getDownloadURL();
-        break;
-      case 3:
-        future = ref.child("$gameKey/2south.jpg").getDownloadURL();
-        break;
-    }
-    try {
-      String url = await future;
-      return url;
-    } catch (e) {
-      print("no top hint");
-      print(e);
-      return "";
-    }
-  }
-
-  Future<String> bottomHint() async {
-    StorageReference ref = FirebaseStorage.instance.ref();
-    Future<dynamic> future;
-    switch (drawingType) {
-      case 1:
-        future = ref.child("$gameKey/2north.jpg").getDownloadURL();
-        break;
-      case 2:
-        future = ref.child("$gameKey/3north.jpg").getDownloadURL();
-        break;
-      case 3:
-        future = new Future<dynamic>.value('');
-        break;
-    }
-    try {
-      String url = await future;
-      return url;
-    } catch (e) {
-      print("no bottom hint");
-      print(e);
-      return "";
-    }
-  }
-
-  Future<void> writeImage(ByteData data) async {
-    final file = await _localFile;
-    // Write the file
-    file.writeAsBytes(data.buffer.asUint8List());
-
-    StorageReference ref = FirebaseStorage.instance.ref()
-        .child("$gameKey-$drawingType.jpg");
-    StorageUploadTask uploadTask = ref.put(file);
-    Uri downloadUrl = (await uploadTask.future).downloadUrl;
-
-    return FirebaseDatabase.instance.reference()
-        .child('game')
-        .child(gameKey)
-        .child(getDrawingType())
-        .set(<String, String>{
-      getDrawingType() : downloadUrl.toString(),
-      'senderPhotoUrl' : googleSignIn.currentUser.photoUrl,
-      'senderName' : googleSignIn.currentUser.displayName
-    });
-  }
-}
-
 class DrawScreen extends StatefulWidget {
   final int drawingType;
   final String gameKey;
@@ -155,69 +53,12 @@ class DrawScreen extends StatefulWidget {
   }
 }
 
-class _ScreenPainter extends CustomPainter {
-  _ScreenPainter({
-    this.myRect,
-    this.points
-  }) : super();
-
-  final Rect myRect;
-  final List<Offset> points;
-
-  void drawRect(Canvas canvas, Rect rect, Color color) {
-    final Paint paint = new Paint()
-      ..color = color.withOpacity(0.25)
-      ..strokeWidth = 4.0
-      ..style = PaintingStyle.stroke;
-    canvas.drawRect(rect, paint);
-  }
-
-  static void drawPoints(Canvas canvas, List<Offset> points, Color color) {
-    final Paint paint = new Paint()
-      ..color = color.withOpacity(.25)
-      ..strokeWidth = 4.0
-      ..style = PaintingStyle.stroke;
-    canvas.drawPoints(PointMode.points, points, paint);
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    drawRect(canvas, myRect, Colors.green);
-    drawPoints(canvas, points, Colors.red);
-  }
-
-  @override
-  bool shouldRepaint(_ScreenPainter oldDelegate) {
-    return myRect != oldDelegate.myRect;
-  }
-
-  @override
-  bool hitTest(Offset position) {
-//    return (myRect.center - position).distanceSquared < _kTargetSlop;
-    return true;
-  }
-}
-
 class DrawState extends State<DrawScreen> {
   final GlobalKey _painterKey = new GlobalKey();
   Rect _begin;
   Size _screenSize;
   List<Offset> _points = new List<Offset>();
-  Widget _result;
 
-  // You can't use async/await here,
-  // We can't mark this method as async because of the @override
-  @override
-  void initState() {
-    _gesture(context).then((result) {
-      // If we need to rebuild the widget with the resulting data,
-      // make sure to use `setState`
-      setState(() {
-        _result = result;
-      });
-    });
-  }
-  
   Drag _handleOnStart(Offset position) {
     print(position);
     return new _DragHandler(
@@ -232,11 +73,9 @@ class DrawState extends State<DrawScreen> {
     });
   }
 
-  void _handleDragCancel() {
-  }
+  void _handleDragCancel() {}
 
-  void _handleDragEnd(DragEndDetails details) {
-  }
+  void _handleDragEnd(DragEndDetails details) {}
 
   void _clear() {
     setState(() {
@@ -246,10 +85,10 @@ class DrawState extends State<DrawScreen> {
 
   Future _save() async {
     print("Save tapped");
-   // https://groups.google.com/forum/#!msg/flutter-dev/yCzw8sutC-E/zo2GZw87BgAJ
+    // https://groups.google.com/forum/#!msg/flutter-dev/yCzw8sutC-E/zo2GZw87BgAJ
     PictureRecorder recorder = new PictureRecorder();
     Canvas c = new Canvas(recorder);
-    _ScreenPainter.drawPoints(c, _points, Colors.red);
+    ScreenPainter.drawPoints(c, _points, Colors.red);
     Picture p = recorder.endRecording();
     ByteData b = await p
         .toImage(_screenSize.width.floor(), _screenSize.height.floor())
@@ -257,11 +96,10 @@ class DrawState extends State<DrawScreen> {
     return widget.storage.writeImage(b);
   }
 
-  Future<dynamic> getUrl(dynamic gameId) async  {
+  Future<dynamic> getUrl(dynamic gameId) async {
     String loc = "$gameId/jpg";
     print(loc);
-    StorageReference ref = FirebaseStorage.instance.ref()
-        .child(loc);
+    StorageReference ref = FirebaseStorage.instance.ref().child(loc);
     return ref.getDownloadURL();
   }
 
@@ -270,15 +108,9 @@ class DrawState extends State<DrawScreen> {
     print("url is: $url");
     if (url.isNotEmpty) {
       return Image.network(url);
-//      return new Positioned(
-//        top: 1.0,
-//        left: 1.0,
-//        right: 1.0,
-//        child: Image.network(url),
-//      );
     } else {
-      print("returning null");
-      return null;
+      return new Container();
+//      return new Container(width: 0.0, height: 0.0);
     }
   }
 
@@ -287,117 +119,33 @@ class DrawState extends State<DrawScreen> {
     if (url.isNotEmpty) {
       String url = await widget.storage.bottomHint();
       return Image.network(url);
-////      return new Positioned(
-////        bottom: 1.0,
-////        left: 1.0,
-////        right: 1.0,
-////        child: Image.network(url),
-//      );
     } else {
-      return null;
+      return new Container(width: 0.0, height: 0.0);
     }
   }
 
-  Future<Widget> _gesture(BuildContext context) async {
-    return new Column(
-        children: [new Expanded(
-            child: new RawGestureDetector(
-                behavior: HitTestBehavior.deferToChild,
-                gestures: <Type, GestureRecognizerFactory>{
-                  ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers
-                  <ImmediateMultiDragGestureRecognizer>(
-                        () => new ImmediateMultiDragGestureRecognizer(),
-                        (ImmediateMultiDragGestureRecognizer instance) {
-                      instance
-                        ..onStart = _handleOnStart;
-                    },
-                  ),
+  Widget painterWidget() {
+    return new Container(
+        width: 100.0,
+        height: 100.0,
+        child: new RawGestureDetector(
+            behavior: HitTestBehavior.deferToChild,
+            excludeFromSemantics: true,
+            gestures: <Type, GestureRecognizerFactory>{
+              ImmediateMultiDragGestureRecognizer:
+                  new GestureRecognizerFactoryWithHandlers<
+                      ImmediateMultiDragGestureRecognizer>(
+                () => new ImmediateMultiDragGestureRecognizer(),
+                (ImmediateMultiDragGestureRecognizer instance) {
+                  instance..onStart = _handleOnStart;
                 },
-                child: new CustomPaint(
-                    key: _painterKey,
-                    painter: new _ScreenPainter(
-                        myRect: _begin,
-                        points: _points
-                    ),
-                    child: new Center()
-                )
-            )
-        )]
-    );
+              ),
+            },
+            child: new CustomPaint(
+                painter:
+                    new ScreenPainter(myRect: startRect(), points: _points),
+                child: new Center())));
   }
-//  Future<Widget> _gesture(BuildContext context) async {
-//    List<Widget> widgets = await Future.wait([topHint(), bottomHint()]);
-//    List<Widget> filtered = widgets.toList();
-//    filtered.insert(1, Expanded(
-//            child: new RawGestureDetector(
-//                behavior: HitTestBehavior.deferToChild,
-//                gestures: <Type, GestureRecognizerFactory>{
-//                  ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers
-//                  <ImmediateMultiDragGestureRecognizer>(
-//                        () => new ImmediateMultiDragGestureRecognizer(),
-//                        (ImmediateMultiDragGestureRecognizer instance) {
-//                      instance
-//                        ..onStart = _handleOnStart;
-//                    },
-//                  ),
-//                },
-//                child: new CustomPaint(
-//                    key: _painterKey,
-//                    painter: new _ScreenPainter(
-//                        myRect: _begin,
-//                        points: _points
-//                    ),
-//                    child: new Center()
-//                )
-//            )
-//        ));
-//    filtered.removeWhere((widget) {
-//      print("widget: $widget");
-//      return (widget == null);
-//    });
-//    print("num hints: ${filtered.length}");
-//    return new Column(
-//      children: filtered
-//    );
-//  }
-
-//  Future<Widget> _gesture(BuildContext context) async {
-//    List<Widget> widgets = await Future.wait([topHint(), bottomHint()]);
-//    List<Widget> filtered = widgets.toList();
-//    filtered.removeWhere((widget) {
-//      print("widget: $widget");
-//      return (widget == null);
-//    });
-//    print("num hints: ${widgets.length}");
-//    filtered.add(
-//        Expanded(
-//            child: new RawGestureDetector(
-//                behavior: HitTestBehavior.deferToChild,
-//                gestures: <Type, GestureRecognizerFactory>{
-//                  ImmediateMultiDragGestureRecognizer: new GestureRecognizerFactoryWithHandlers
-//                  <ImmediateMultiDragGestureRecognizer>(
-//                        () => new ImmediateMultiDragGestureRecognizer(),
-//                        (ImmediateMultiDragGestureRecognizer instance) {
-//                      instance
-//                        ..onStart = _handleOnStart;
-//                    },
-//                  ),
-//                },
-//                child: new CustomPaint(
-//                    key: _painterKey,
-//                    painter: new _ScreenPainter(
-//                        myRect: _begin,
-//                        points: _points
-//                    ),
-//                    child: new Center()
-//                )
-//            )
-//        )
-//    );
-//    return new Stack(
-//      children: filtered
-//    );
-//  }
 
   Widget _buttonClear() {
     return new FlatButton(
@@ -406,14 +154,10 @@ class DrawState extends State<DrawScreen> {
           _clear();
         },
         child: new Text('Clear',
-            style: Theme
-                .of(context)
-                .textTheme
-                .caption
-                .copyWith(fontSize: 16.0)
-        )
-    );
+            style:
+                Theme.of(context).textTheme.caption.copyWith(fontSize: 16.0)));
   }
+
   Widget _buttonDone() {
     return new FlatButton(
         color: Colors.red,
@@ -422,41 +166,58 @@ class DrawState extends State<DrawScreen> {
           Navigator.pop(context);
         },
         child: new Text('Done',
-            style: Theme
-                .of(context)
-                .textTheme
-                .caption
-                .copyWith(fontSize: 16.0)
-        )
-    );
+            style:
+                Theme.of(context).textTheme.caption.copyWith(fontSize: 16.0)));
+  }
+
+  Rect startRect() {
+    final Size screenSize = MediaQuery.of(context).size;
+    if (_screenSize == null || _screenSize != screenSize) {
+      _screenSize = screenSize;
+      _begin = new Rect.fromLTWH(
+          screenSize.width * 0.5,
+          screenSize.height * 0.2,
+          screenSize.width * 0.4,
+          screenSize.height * 0.2);
+    }
+    return _begin;
+  }
+
+  Widget getFutureWidget(Future<Widget> calc) {
+    return new FutureBuilder<Widget>(
+        future: calc,
+        builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
+          switch (snapshot.connectionState) {
+            case ConnectionState.none:
+              return new Text('Press button to start');
+            case ConnectionState.waiting:
+              return new Text('Awaiting result...');
+            default:
+              if (snapshot.hasError)
+                return new Text('Error: ${snapshot.error}');
+              else
+                print("have data: ${snapshot.data}");
+              return snapshot.data;
+          }
+        });
+  }
+
+  Widget painterWidgets(BuildContext context) {
+    List<Widget> widgets = [
+      getFutureWidget(topHint()),
+      painterWidget(),
+//      await bottomHint()
+    ];
+    return new Expanded(child: new Column(children: widgets));
   }
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery
-        .of(context)
-        .size;
-    if (_screenSize == null || _screenSize != screenSize) {
-      _screenSize = screenSize;
-      _begin = new Rect.fromLTWH(
-          screenSize.width * 0.5, screenSize.height * 0.2,
-          screenSize.width * 0.4, screenSize.height * 0.2
-      );
-    }
-
-    if (_result == null) {
-      return new Text("loading");
-    } else {
-      return new Row(
-          children: [
-            _result,
-            new Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  _buttonDone(),
-                  _buttonClear()
-                ])
-          ]);
-    }
+    return new Row(children: [
+      painterWidgets(context),
+      new Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[_buttonDone(), _buttonClear()])
+    ]);
   }
 }
