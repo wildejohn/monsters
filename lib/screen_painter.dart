@@ -11,7 +11,8 @@ class ScreenPainter extends CustomPainter {
       ..color = color.withOpacity(.25)
       ..strokeWidth = 4.0
       ..style = PaintingStyle.stroke;
-    canvas.drawPoints(PointMode.points, points, paint);
+    canvas.drawPoints(PointMode.polygon, points, paint);
+//    paintImage(canvas: null, rect: null, image: null)
   }
 
   final List<Offset> points;
@@ -34,7 +35,6 @@ class ScreenPainter extends CustomPainter {
   @override
   bool hitTest(Offset position) {
     print("hit test" + position.toString());
-//    return (myRect.center - position).distanceSquared < _kTargetSlop;
     return true;
   }
 }

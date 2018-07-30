@@ -9,10 +9,6 @@ import 'package:flutter/widgets.dart';
 import 'package:monsters/drawing_storage.dart';
 import 'package:monsters/screen_painter.dart';
 
-// How close a drag's start position must be to the target point. This is
-// a distance squared.
-const double _kTargetSlop = 2500.0;
-
 class _DragHandler extends Drag {
   _DragHandler(this.onUpdate, this.onCancel, this.onEnd);
 
@@ -58,7 +54,6 @@ class DrawState extends State<DrawScreen> {
   GlobalKey painterKey = new GlobalKey();
 
   Drag _handleOnStart(Offset position) {
-//    print(position);
     return new _DragHandler(
         _handleDragUpdate, _handleDragCancel, _handleDragEnd);
   }
@@ -92,7 +87,7 @@ class DrawState extends State<DrawScreen> {
     Canvas c = new Canvas(recorder);
     ScreenPainter.drawPoints(c, _points, Colors.red);
     Picture p = recorder.endRecording();
-    Size screenSize = MediaQuery.of(context).size;
+    Size screenSize = MediaQuery.of(painterKey.currentContext).size;
     ByteData b = await p
         .toImage(screenSize.width.floor(), screenSize.height.floor())
         .toByteData(format: ImageByteFormat.png);
@@ -136,9 +131,7 @@ class DrawState extends State<DrawScreen> {
   Widget _buttonClear() {
     return new FlatButton(
         color: Colors.red,
-        onPressed: () async {
-          _clear();
-        },
+        onPressed: () => _clear(),
         child: new Text('Clear',
             style:
                 Theme.of(context).textTheme.caption.copyWith(fontSize: 16.0)));
