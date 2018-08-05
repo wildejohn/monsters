@@ -1,21 +1,22 @@
+import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'package:google_sign_in/google_sign_in.dart';                   // new
-import 'dart:async';                                               // new
-import 'package:firebase_analytics/firebase_analytics.dart';      // new
-import 'package:firebase_auth/firebase_auth.dart';                // new
-import 'package:firebase_database/firebase_database.dart';         //new
+import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:transparent_image/transparent_image.dart';
-
+// new
+// new
+// new
+// new
+//new
 //import 'package:firebase_database/ui/firebase_animated_list.dart'; //new
 //import 'package:firebase_storage/firebase_storage.dart';          // new
-import 'package:image_picker/image_picker.dart';     // new
-
-import 'dart:math';                                  // new
-import 'dart:io';
+// new
+// new
 
 final googleSignIn = new GoogleSignIn();
 final analytics = new FirebaseAnalytics();
@@ -27,13 +28,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-
   DatabaseReference _gameRef;
   DatabaseReference _newGameRef;
   DatabaseError _error;
   String _gameId;
   StreamSubscription<Event> _gameSubscription;
-
 
   @override
   void initState() {
@@ -65,8 +64,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   Future<Null> _tryLogIn() async {
     GoogleSignInAccount user = googleSignIn.currentUser;
-    if (user == null)
-      user = await googleSignIn.signInSilently();
+    if (user == null) user = await googleSignIn.signInSilently();
     if (user == null) {
       await googleSignIn.signIn();
       analytics.logLogin();
@@ -86,7 +84,8 @@ class HomeScreenState extends State<HomeScreen> {
 
   Future<Null> _tryAuthenticate() async {
     if (await auth.currentUser() == null) {
-      GoogleSignInAuthentication credentials = await googleSignIn.currentUser.authentication;
+      GoogleSignInAuthentication credentials =
+          await googleSignIn.currentUser.authentication;
       await auth.signInWithGoogle(
         idToken: credentials.idToken,
         accessToken: credentials.accessToken,
@@ -96,25 +95,10 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-    ]);
     return new Scaffold(
-        appBar: new AppBar(
-          title: new Text("Monsters!"),
-          elevation: Theme
-              .of(context)
-              .platform == TargetPlatform.iOS ? 0.0 : 4.0,
-        ),
-
-        body: new Row(
+        body: new Column(
             mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              _buildImage(),
-              _buildButtons()
-            ]
-        )
-    );
+            children: <Widget>[_buildImage(), _buildButtons()]));
   }
 
   Widget _buildImage() {
@@ -122,8 +106,7 @@ class HomeScreenState extends State<HomeScreen> {
       return new Expanded(
           child: FadeInImage.memoryNetwork(
               placeholder: kTransparentImage,
-              image: googleSignIn.currentUser.photoUrl
-          ));
+              image: googleSignIn.currentUser.photoUrl));
     } else {
       return new Expanded(
           child: new Image.asset(
@@ -143,7 +126,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   void _newGame() {
     _newGameRef = _gameRef.push();
-    _newGameRef.set(<String, String>{'user' : 'john'});
+    _newGameRef.set(<String, String>{'user': 'john'});
     Navigator.pushNamed(context, "/new/${_newGameRef.key}");
   }
 
@@ -161,7 +144,8 @@ class HomeScreenState extends State<HomeScreen> {
             _buildButton(text, _logInOrOut),
             _buildButton("Start", _newGame),
             _buildButton("In Progress", _gameList),
-            _buildButton("Finished", () => Navigator.pushNamed(context, "/finishedGameList")),
+            _buildButton("Finished",
+                () => Navigator.pushNamed(context, "/finishedGameList")),
           ],
         ),
       );
@@ -172,35 +156,29 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildButton(String text, VoidCallback onTap) {
     return new IconTheme(
-      data: new IconThemeData(color: Theme
-          .of(context)
-          .accentColor),
+      data: new IconThemeData(color: Theme.of(context).accentColor),
       child: new Center(
-        child: new RaisedButton(
-          onPressed: () async { onTap(); },
-          child: new Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Icon(
-                Icons.dvr,
-                size: 40.0,
-              ),
-              new Container(
-                width: 20.0,
-              ),
-              new Container(
-                  padding: EdgeInsets.all(10.0),
-                  child: new Text(
-                      text,
-                      style: new TextStyle(fontSize: 40.0)
-                  )
-              ),
-            ]
-          )
+        child: Padding(
+          padding: EdgeInsets.all(4.0),
+          child: new RaisedButton(
+              onPressed: () async {
+                onTap();
+              },
+              child: new Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                const Icon(
+                  Icons.dvr,
+                  size: 40.0,
+                ),
+                new Container(
+                  width: 20.0,
+                ),
+                new Container(
+                    padding: EdgeInsets.all(10.0),
+                    child:
+                        new Text(text, style: new TextStyle(fontSize: 40.0))),
+              ])),
         ),
       ),
     );
   }
-
 }
-

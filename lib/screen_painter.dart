@@ -11,15 +11,19 @@ class ScreenPainter extends CustomPainter {
       ..color = color.withOpacity(.25)
       ..strokeWidth = 4.0
       ..style = PaintingStyle.stroke;
-    canvas.drawPoints(PointMode.polygon, points, paint);
-//    paintImage(canvas: null, rect: null, image: null)
+    canvas.drawPoints(PointMode.points, points, paint);
   }
 
   final List<Offset> points;
 
   @override
   void paint(Canvas canvas, Size size) {
-    drawPoints(canvas, points, Colors.red);
+//    drawPoints(canvas, points, Colors.red);
+    final Paint paint = new Paint()
+      ..color = Colors.red.withOpacity(.25)
+      ..strokeWidth = 4.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawPoints(PointMode.points, points, paint);
   }
 
   @override

@@ -53,9 +53,39 @@ class DrawState extends State<DrawScreen> {
   List<Offset> _points = new List<Offset>();
   GlobalKey painterKey = new GlobalKey();
 
-  Drag _handleOnStart(Offset position) {
-    return new _DragHandler(
-        _handleDragUpdate, _handleDragCancel, _handleDragEnd);
+//  Drag _handleOnStart(Offset position) {
+//    return new _DragHandler(
+//        _handleDragUpdate, _handleDragCancel, _handleDragEnd);
+//  }
+  void _handleOnStart(DragStartDetails position) {}
+
+  void _handleScaleStart(ScaleStartDetails d) {
+    print("starting scale at ${d.focalPoint}"); // from $_offset $_scale");
+//    _startingFocalPoint = d.focalPoint;
+//    _previousOffset = _offset;
+//    _previousScale = _scale;
+  }
+//  Drag _handleScaleStart(Offset position) {
+//    return new _DragHandler(
+//        _handleDragUpdate, _handleDragCancel, _handleDragEnd);
+//  }
+
+  void _handleScaleUpdate(ScaleUpdateDetails d) {
+    print("update scale at ${d.toString()}"); // from $_offset $_scale");
+//    double newScale = _previousScale * d.scale;
+//    if (newScale > widget.maxScale) {
+//      return;
+//    }
+//
+//    // Ensure that item under the focal point stays in the same place despite zooming
+//    final Offset normalizedOffset =
+//        (_startingFocalPoint - _previousOffset) / _previousScale;
+//    final Offset newOffset = d.focalPoint - normalizedOffset * newScale;
+//
+//    setState(() {
+//      _scale = newScale;
+//      _offset = newOffset;
+//    });
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
@@ -173,12 +203,20 @@ class DrawState extends State<DrawScreen> {
         behavior: HitTestBehavior.deferToChild,
         excludeFromSemantics: true,
         gestures: <Type, GestureRecognizerFactory>{
-          ImmediateMultiDragGestureRecognizer:
-              new GestureRecognizerFactoryWithHandlers<
-                  ImmediateMultiDragGestureRecognizer>(
-            () => new ImmediateMultiDragGestureRecognizer(),
-            (ImmediateMultiDragGestureRecognizer instance) {
+          PanGestureRecognizer:
+              new GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+            () => new PanGestureRecognizer(),
+            (PanGestureRecognizer instance) {
               instance..onStart = _handleOnStart;
+              instance..onUpdate = _handleDragUpdate;
+            },
+          ),
+          ScaleGestureRecognizer:
+              new GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
+            () => new ScaleGestureRecognizer(),
+            (ScaleGestureRecognizer instance) {
+              instance..onStart = _handleScaleStart;
+              instance..onUpdate = _handleScaleUpdate;
             },
           ),
         },
@@ -190,16 +228,24 @@ class DrawState extends State<DrawScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> widgets = [
-      topHintImage == null ? getFutureWidget(topHint()) : topHintImage,
-      new Expanded(child: painterWidget()),
-      bottomHintImage == null ? getFutureWidget(bottomHint()) : bottomHintImage,
-    ];
-    return new Row(children: [
-      new Expanded(child: new Column(children: widgets)),
-      new Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[_buttonDone(), _buttonClear()])
-    ]);
+    return new Column(
+      children: [
+        new Padding(
+          padding: EdgeInsets.only(top: 16.0),
+          child: new Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[_buttonDone(), _buttonClear()]),
+        ),
+        new Expanded(
+          child: new Column(children: [
+            topHintImage == null ? getFutureWidget(topHint()) : topHintImage,
+            new Expanded(child: painterWidget()),
+            bottomHintImage == null
+                ? getFutureWidget(bottomHint())
+                : bottomHintImage,
+          ]),
+        )
+      ],
+    );
   }
 }
