@@ -91,8 +91,11 @@ class DrawingStorage {
 
     StorageReference ref =
         FirebaseStorage.instance.ref().child("$gameKey-$drawingType.jpg");
-    StorageUploadTask uploadTask = ref.put(file);
-    Uri downloadUrl = (await uploadTask.future).downloadUrl;
+    StorageUploadTask uploadTask = ref.putFile(file);
+
+    String url = await uploadTask.onComplete
+        .then((snapshot) => snapshot.ref.getDownloadURL())
+        .then((v) => v);
 
     return FirebaseDatabase.instance
         .reference()
@@ -100,7 +103,7 @@ class DrawingStorage {
         .child(gameKey)
         .child(getDrawingType())
         .set(<String, String>{
-      getDrawingType(): downloadUrl.toString(),
+      getDrawingType(): url,
       'senderPhotoUrl': googleSignIn.currentUser.photoUrl,
       'senderName': googleSignIn.currentUser.displayName
     });
