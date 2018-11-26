@@ -17,7 +17,6 @@ class DrawScreen extends StatefulWidget {
 
   DrawScreen(
       {
-
       /// Maximum ratio to blow up image pixels. A value of 2.0 means that the
       /// a single device pixel will be rendered as up to 4 logical pixels.
       this.maxScale = 4.0,
@@ -35,28 +34,37 @@ class DrawScreen extends StatefulWidget {
 }
 
 class DrawState extends State<DrawScreen> {
-  List<Offset> _points = new List<Offset>();
+  List<Offset> points = new List<Offset>();
   GlobalKey painterKey = new GlobalKey();
-  Size _defaultImageSize = new Size(200.0, 200.0);
-  Size _imageSize = new Size(200.0, 200.0);
-  Offset _startingFocalPoint;
-  Offset _previousOffset;
-  Offset _offset; // where the top left corner of the image is drawn
-  double _previousScale;
-  double _scale; // multiplier applied to scale the full image
-  Size _canvasSize;
-  Orientation _previousOrientation;
-  Size _scaledImage;
-  Rect _activeRect;
+  int width = 300;
+  int height = 500;
+  Size defaultSize;
+  Offset startingFocalPoint;
+  Offset previousOffset;
+  Offset offset; // where the top left corner of the image is drawn
+  double previousScale;
+  double scale; // multiplier applied to scale the full image
+  Size canvasSize;
+  Orientation previousOrientation;
+  Rect activeRect;
 
   void _centerAndScaleImage() {
-    _imageSize = _defaultImageSize;
-    _scale = 1.0;
-    Offset delta = _canvasSize - _imageSize;
-    _offset = delta / 2.0; // Centers the image
+    // add points to define a border
+    defaultSize = Size(width.toDouble(), height.toDouble());
+
+    Rect r = Offset.zero & defaultSize;
+    for (double i=0.0; i<=1.0; i+=0.01) {
+      points.add(Offset.lerp(r.topLeft, r.topRight, i));
+      points.add(Offset.lerp(r.topRight, r.bottomRight, i));
+      points.add(Offset.lerp(r.bottomRight, r.bottomLeft, i));
+      points.add(Offset.lerp(r.bottomLeft, r.topLeft, i));
+    }
+
+    scale = 1.0;
+    Offset delta = canvasSize - defaultSize;
+    offset = delta / 2.0; // Centers the image
     // ignore points outside visible canvas
-    _scaledImage = _imageSize * _scale;
-    _activeRect = _offset & _scaledImage;
+    activeRect = offset & defaultSize * scale;
   }
 
   void _handleOnPanStart(DragStartDetails position) {
@@ -67,70 +75,62 @@ class DrawState extends State<DrawScreen> {
     setState(() {
       final keyContext = painterKey.currentContext;
       RenderBox object = keyContext.findRenderObject();
-      print("ds object size" + object.size.toString());
-      print("ds global: " + details.globalPosition.toString());
-
       Offset pos = object.globalToLocal(details.globalPosition);
 
-      if (_activeRect.contains(pos)) {
-        Offset newPos = pos / _scale - _offset / _scale;
-        _points = new List.from(_points)..add(newPos);
+      if (activeRect.contains(pos)) {
+        // add point in canvas coordinates
+        print("inside");
+        Offset newPos = (pos - offset) / scale;
+        points = new List.from(points)..add(newPos);
       } else {
-        print("ds touch point outside object");
+        print("outside");
       }
     });
   }
 
   void _handleScaleStart(ScaleStartDetails d) {
-    print("starting scale at ${d.focalPoint}"); // from $_offset $_scale");
-    _startingFocalPoint = d.focalPoint;
-    _previousOffset = _offset;
-    _previousScale = _scale;
+    startingFocalPoint = d.focalPoint;
+    previousOffset = offset;
+    previousScale = scale;
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails d) {
-    print("scale details + $d"); // from $_offset $_scale");
-    print("previous scale + $_previousScale"); // from $_offset $_scale");
-    double newScale = _previousScale * d.scale;
+    double newScale = previousScale * d.scale;
     if (newScale > widget.maxScale) {
       return;
     }
 
-    print("update scale at ${d.toString()}"); // from $_offset $_scale");
-
     // Ensure that item under the focal point stays in the same place despite zooming
     final Offset normalizedOffset =
-        (_startingFocalPoint - _previousOffset) / _previousScale;
+        (startingFocalPoint - previousOffset) / previousScale;
     final Offset newOffset = d.focalPoint - normalizedOffset * newScale;
 
     setState(() {
-      print("new scale: $newScale");
-      _points = _points;
-      _scale = newScale;
-      _offset = newOffset;
-      // ignore points outside visible canvas
-      _scaledImage = _imageSize * _scale;
-      _activeRect = _offset & _scaledImage;
+      points = points;
+      scale = newScale;
+      offset = newOffset;
+      // Rectangle construction operator: &
+      // left hand is origin, right hand is size of rectangle
+      activeRect = offset & defaultSize * scale;
     });
   }
 
   void _clear() {
     setState(() {
-      _points.clear();
+      points.clear();
       _centerAndScaleImage();
     });
   }
 
   Future _save() async {
-    print("Save tapped");
     // https://groups.google.com/forum/#!msg/flutter-dev/yCzw8sutC-E/zo2GZw87BgAJ
     PictureRecorder recorder = new PictureRecorder();
     Canvas c = new Canvas(recorder);
-    ZoomableScreenPainter.drawPoints(c, _points, Colors.red);
+    ZoomableScreenPainter.drawPoints(c, points);
     Picture p = recorder.endRecording();
-    Size screenSize = MediaQuery.of(painterKey.currentContext).size;
+//    Size screenSize = MediaQuery.of(painterKey.currentContext).size;
     ByteData b = await p
-        .toImage(screenSize.width.floor(), screenSize.height.floor())
+        .toImage(width, height)
         .toByteData(format: ImageByteFormat.png);
     return widget.storage.writeImage(b);
   }
@@ -232,19 +232,12 @@ class DrawState extends State<DrawScreen> {
           ),
         },
         child: new CustomPaint(
-//          child: new Text('Hello this is text'),
-//          size: new Size(200, 200),
-          child: new Center(
-              child: new Container(
-            color: Colors.white,
-            width: 50.0,
-            height: 100.0,
-          )),
+          child: new Center(),
           foregroundPainter: new ZoomableScreenPainter(
-              points: _points,
-              offset: _offset,
-              scale: _scale,
-              imageSize: _imageSize
+              points: points,
+              offset: offset,
+              scale: scale,
+            activeRect: activeRect
           ),
         ));
   }
@@ -253,16 +246,11 @@ class DrawState extends State<DrawScreen> {
   Widget build(BuildContext context) {
     return new LayoutBuilder(builder: (ctx, constraints) {
       Orientation orientation = MediaQuery.of(ctx).orientation;
-      if (orientation != _previousOrientation) {
-        _previousOrientation = orientation;
-        _canvasSize = constraints.biggest;
-        print("ds canvas size: " + _canvasSize.toString());
+      if (orientation != previousOrientation) {
+        previousOrientation = orientation;
+        canvasSize = constraints.biggest;
         _centerAndScaleImage();
       }
-
-//      return new Center(
-//        child: painterWidget(),
-//      );
 
       return new Column(
         children: [

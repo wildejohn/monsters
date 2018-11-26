@@ -13,8 +13,7 @@ class DrawingStorage {
   DrawingStorage(this.drawingType, this.gameKey);
 
   Future<String> get _localPath async {
-    final directory = await getExternalStorageDirectory();
-
+    final directory = await getTemporaryDirectory();
     return directory.path;
   }
 
@@ -87,7 +86,7 @@ class DrawingStorage {
   Future<void> writeImage(ByteData data) async {
     final file = await _localFile;
     // Write the file
-    file.writeAsBytes(data.buffer.asUint8List());
+    await file.writeAsBytes(data.buffer.asUint8List());
 
     StorageReference ref =
         FirebaseStorage.instance.ref().child("$gameKey-$drawingType.jpg");
